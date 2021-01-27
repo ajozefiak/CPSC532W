@@ -118,25 +118,65 @@ print('{:.2f}% of the total samples were rejected'.format(100*rejections/(sample
 
 #we can calculate p(R|C,S,W) and p(S|C,R,W) from the joint, dividing by the right marginal distribution
 #indexing is [c,s,r,w]
-p_R_given_C_S_W = p/p.sum(axis=2, keepdims=True)
-p_S_given_C_R_W = p/p.sum(axis=1, keepdims=True)
-
+p_R_given_C_S_W = p ./ sum(p, dims=3)
+p_S_given_C_R_W = p ./ sum(p, dims=2)
 
 # but for C given R,S,W, there is a 0 in the joint (0/0), arising from p(W|S,R)
 # but since p(W|S,R) does not depend on C, we can factor it out:
 #p(C | R, S) = p(R,S,C)/(int_C (p(R,S,C)))
 
 #first create p(R,S,C):
-p_C_S_R = np.zeros((2,2,2)) #c,s,r
-for c in range(2):
-    for s in range(2):
-        for r in range(2):
+p_C_S_R = zeros(2,2,2) #c,s,r
+for c in 1:2
+    for s in 1:2
+        for r in 1:2
             p_C_S_R[c,s,r] = p_C(c)*p_S_given_C(s,c)*p_R_given_C(r,c)
+        end
+    end
+end
 
 #then create the conditional distribution:
-p_C_given_S_R = p_C_S_R[:,:,:]/p_C_S_R[:,:,:].sum(axis=(0),keepdims=True)
+p_C_given_S_R = p_C_S_R ./ sum(p_C_S_R, dims=1)
 
 
+##gibbs sampling
+# num_samples = 10000
+num_samples = 10000000
+samples = zeros(num_samples)
+state = ones(Int64,4)
+#c,s,r,w, set w = True
+state[4] = 2
+i = 1
+while i <= num_samples
+
+    # Sample r
+    prob = rand()
+    if prob > p_R_given_C_S_W[state[1],state[2],1,state[4]]
+        state[3] = 2
+    else
+        state[3] = 1
+    end
+
+    # Sample s
+    prob = rand()
+    if prob > p_S_given_C_R_W[state[1],1,state[3],state[4]]
+        state[2] = 2
+    else
+        state[2] = 1
+    end
+
+    # Sample c
+    prob = rand()
+    if prob > p_C_given_S_R[1,state[2],state[3]]
+        state[1] = 2
+    else
+        state[1] = 1
+    end
+    samples[i] = state[1]
+    global i += 1
+    #println(state)
+
+end
 
 ##gibbs sampling
 num_samples = 10000
