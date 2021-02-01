@@ -1,4 +1,6 @@
-using LinearAlgebra
+using LinearAlgebra, Printf
+
+Base.show(io::IO, f::Float64) = @printf(io, "%1.2f", f)
 
 
 ##first define the probability distributions as defined in the excercise:
@@ -58,11 +60,7 @@ for s in 1:2
 end
 p_C_given_W = p_C_and_W / p_W
 
-println("There is a ", p_C_given_W, " chance it is cloudly given the grass is wet")
-
-print('There is a {:.2f}% chance it is cloudy given the grass is wet'.format(p_C_given_W[1]*100))
-
-
+println("There is a ", p_C_given_W*100, "% chance it is cloudly given the grass is wet.")
 
 ##2. ancestral sampling and rejection:
 num_samples = 10000
@@ -107,9 +105,8 @@ while i <= num_samples
 end
 
 
-print('The chance of it being cloudy given the grass is wet is {:.2f}%'.format(samples.mean()*100))
-print('{:.2f}% of the total samples were rejected'.format(100*rejections/(samples.shape[0]+rejections)))
-
+println("The chance of it being cloudy given the grass is wet is ", (sum(samples)./num_samples)*100, "%.")
+println(100*rejections/(num_samples+rejections), "% of the total samples were rejected.")
 
 #3: Gibbs
 # we can use the joint above to condition on the variables, to create the needed
@@ -141,7 +138,7 @@ p_C_given_S_R = p_C_S_R ./ sum(p_C_S_R, dims=1)
 
 ##gibbs sampling
 # num_samples = 10000
-num_samples = 10000000
+num_samples = 10000
 samples = zeros(num_samples)
 state = ones(Int64,4)
 #c,s,r,w, set w = True
@@ -174,16 +171,8 @@ while i <= num_samples
     end
     samples[i] = state[1]
     global i += 1
-    #println(state)
 
 end
 
-##gibbs sampling
-num_samples = 10000
-samples = np.zeros(num_samples)
-state = np.zeros(4,dtype='int')
-#c,s,r,w, set w = True
 
-#TODO
-
-print('The chance of it being cloudy given the grass is wet is {:.2f}%'.format(samples.mean()*100))
+println("The chance of it being cloudy given the grass is wet is, ",100*sum(samples .- 1)/num_samples ,"%.")
