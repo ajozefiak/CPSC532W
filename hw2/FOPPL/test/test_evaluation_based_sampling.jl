@@ -55,6 +55,8 @@ end
             dist = primitives[truth[1]](truth[2:end]...)
 
             samples = get_samples_eval(ast,num_samples)
+            # Need to cast as Float64 for KS Test
+            samples = Float64[samples...]
             p_val = pvalue(ExactOneSampleKSTest(samples,dist))
 
             @test p_val > max_p_value
@@ -67,6 +69,8 @@ end
         dist = MixtureModel(Normal[Normal(-1,0.3),Normal(1,0.3)],[0.1, 0.9])
 
         samples = get_samples_eval(ast,num_samples)
+        # Need to cast as Float64 for KS Test
+        samples = Float64[samples...]
         p_val = pvalue(ExactOneSampleKSTest(samples,dist))
 
         @test p_val > max_p_value

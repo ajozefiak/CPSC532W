@@ -151,7 +151,7 @@ end
 # TODO: In the future make this more efficient,
 # and use an equivalent of a stream in Julia
 function get_samples_graph(ast,n)
-    samples = Float64[]
+    samples = []
     for i in 1:n
         push!(samples,sample_from_joint(ast))
     end
