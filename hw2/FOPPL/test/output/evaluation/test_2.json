@@ -1,0 +1,13 @@
+[["let", ["weight-prior", ["normal", 0, 1]],
+  ["let",
+   ["W_0",
+    ["vector", ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]],
+     ["vector", ["sample", "weight-prior"]]]], "W_0"]]]
