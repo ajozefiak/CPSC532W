@@ -1,6 +1,3 @@
-# from daphne import daphne
-# from tests import is_tol, run_prob_test,load_truth
-
 # Includes a map to primitives
 include("primitives.jl")
 

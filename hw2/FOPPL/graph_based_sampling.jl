@@ -1,4 +1,3 @@
-
 using LightGraphs
 
 # Includes a map to primitives
