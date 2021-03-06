@@ -175,9 +175,6 @@ end
 # Gibbs sampling with MH
 ##############################################
 
-# TODO: pass around ρ and l correctly
-# TODO: Do we really need ρ?
-
 # NOTE: assumes l and ρ are already initialized
 function sample_from_joint(ast,l,ρ)
     # Handle functions
@@ -221,18 +218,11 @@ function sample_from_joint(ast,l,ρ)
 end
 
 function accept(ast,l,ρ,x,x_new)
-    # TODO
     logα  = 0
     l_new = copy(l)
     l_new[x[1]] = x_new
 
-    # logα += log_prob(evaluate_program_graph(ast[2]["P"][x[1]][2],l=l,ρ=ρ),x[2])
-    # logα -= log_prob(evaluate_program_graph(ast[2]["P"][x[1]][2],l=l,ρ=ρ),x_new)
-
-    # logα += log(pdf(Normal(x_new,1),x[2]))
-    # logα -= log(pdf(Normal(x[2],1),x_new))
-
-    children = ast[2]["A"]["sample2"]
+    children = ast[2]["A"][x[1]]
     for  child in children
         logα += log_prob(evaluate_program_graph(ast[2]["P"][child][2],l=l_new,ρ=ρ),l_new[child])
         logα -= log_prob(evaluate_program_graph(ast[2]["P"][child][2],l=l,ρ=ρ),l[child])
@@ -243,15 +233,12 @@ end
 
 function gibbs_step(ast,l,ρ)
     # Iterate over unobserved variables
-    # TODO: check if l is created as intended
 
     for x in l
         # Only iterate over unobserved RVs
         if x[1][1:6] == "sample"
             # x[1] is the variable key in the dictionary, x[2] is the value
 
-            # For now, and simplicity, we use q(X'|X) = N(X|1)
-            # x_new = rand(Normal(x[2],1))
             # TODO: refactor to make this nicer to look at
             x_new = sample_dist(evaluate_program_graph(ast[2]["P"][x[1]][2],l=l,ρ=ρ))
             α = accept(ast,l,ρ,x,x_new)
@@ -265,6 +252,55 @@ function gibbs_step(ast,l,ρ)
     return evaluate_program_graph(ast[3],l=l,ρ=ρ)
 end
 
+###############################################################################
+# Helpers for log density
+###############################################################################
+
+function create_map_to_dist(ast,nodes)
+    if typeof(ast) <: Array
+        if size(ast) == (1,)
+            temp_map = create_map_to_dist(ast[1],nodes)
+            return V -> temp_map(V)
+
+        else
+            temp_maps = [create_map_to_dist(sub_ast,nodes) for sub_ast in ast[2:end]]
+            opp = primitives[ast[1]]
+            return V -> opp([f(V) for f in temp_maps]...)
+        end
+    else
+        if string(ast) ∈ nodes
+            return V -> V[ast]
+        else
+            return V -> ast
+        end
+    end
+end
+
+# Given AST of the graphical model, return a disctionary
+# that maps each node to a map that generates its distribution object
+function get_dists(ast)
+    dists = Dict()
+    nodes = ast[2]["V"]
+    for v in nodes
+        temp_map = create_map_to_dist(ast[2]["P"][v][2],nodes)
+        push!(dists, v => temp_map)
+    end
+    return dists
+end
+
+# Compute potential energy given variable assignment, l, and map
+# from variables to distributions
+function compute_U(l,dists)
+    E_U = 0
+    for v in keys(l)
+        E_U -= log_prob(dists[v](l),l[v])
+    end
+    return E_U
+end
+
+###############################################################################
+###############################################################################
+
 function gibbs(ast,n)
     samples = []
     # Sample initial sample from prior distribution
@@ -274,10 +310,15 @@ function gibbs(ast,n)
     # TODO refactor sample_from_joint
     init_sample = sample_from_joint(ast,l,ρ)
 
+    neg_log_density = []
+    dists = get_dists(ast)
+    U(l) = compute_U(l,dists)
+
     # get n samples using gibbs sampling
     for i in 1:n
         # TODO: write gibbs_step, by refactoring earlier code
         push!(samples,gibbs_step(ast,l,ρ))
+        push!(neg_log_density,U(l))
     end
-    return samples
+    return samples, neg_log_density
 end
