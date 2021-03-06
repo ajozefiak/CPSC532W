@@ -124,16 +124,3 @@ function get_samples_eval(ast,n)
     end
     return samples
 end
-
-function get_mean(samples,i)
-    n = length(samples)
-    sum = 0
-    sumw = 0
-    for i in 1:n
-        W = samples[i][2]
-        w = float(ℯ)^W
-        sum += w*samples[i][1]
-        sumw += w
-    end
-    return sum / sumw
-end
