@@ -1,4 +1,5 @@
 include("primitives.jl")
+# gibbs.jl gives functionality to sample from posterior once
 include("gibbs.jl")
 
 using Zygote
@@ -134,6 +135,9 @@ function HMC(ast,n,T,ϵ,M)
 
     samples = []
 
+    # Remove later
+    neg_log_density = []
+
     # Initialize a dictionary for variables
     l = Dict()
 
@@ -153,6 +157,12 @@ function HMC(ast,n,T,ϵ,M)
     U(l) = compute_U(l,dists)
     H(l,R) = U(l) + K(R)
 
+    # Ensure that initial sample is does not have infinite NLL,
+    # otherwise it cannot be differentiated
+    while U(l) ==  Inf
+        sample_from_joint(ast,l,ρ)
+    end
+
     # Get n samples
     for i in 1:n
         R = rand(MvNormal(zeros(num_sampled_vars), M))
@@ -163,7 +173,7 @@ function HMC(ast,n,T,ϵ,M)
         leapfrog(l_temp,R_temp,T,ϵ,U)
 
         u = rand(Uniform(0,1))
-        #println(exp(-H(l_temp,R_temp) + H(l,R)))
+
         if u < exp(-H(l_temp,R_temp) + H(l,R))
             # update l, TODO: make this faster/better
             for v in l
@@ -171,9 +181,14 @@ function HMC(ast,n,T,ϵ,M)
             end
             push!(samples,evaluate_program_graph(ast[3],l=l,ρ=ρ))
         else
-            push!(samples,samples[end])
+            if !isempty(samples)
+                push!(samples,samples[end])
+            else
+                push!(samples,evaluate_program_graph(ast[3],l=l,ρ=ρ))
+            end
         end
+        push!(neg_log_density,U(l))
     end
 
-    return samples
+    return samples, neg_log_density
 end
